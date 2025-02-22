@@ -40,6 +40,31 @@ def handle_player_turn(
     return None
 
 
+def update_conversation_history(
+    state: ConversationState, speaker: str, message: str
+) -> ConversationState:
+    return replace(
+        state,
+        conversation_history=[*state.conversation_history, f"{speaker}: {message}"],
+    )
+
+
+def handle_player_response(
+    state: ConversationState,
+    current_player: Player,
+    other_player: Player,
+) -> Tuple[ConversationState, Optional[str]]:
+    response = handle_player_turn(
+        current_player,
+        other_player,
+        generate_context(current_player, other_player.name),
+    )
+    if response:
+        print(format_message(current_player.name, response, state.player1.name))
+        state = update_conversation_history(state, current_player.name, response)
+    return state, response
+
+
 def handle_master_input(
     state: ConversationState, master_comments: List[str]
 ) -> Tuple[ConversationState, str]:
@@ -69,53 +94,37 @@ def handle_master_input(
     return state, ""
 
 
+def handle_master_turn(
+    state: ConversationState,
+    master_comments: List[str],
+    previous_response: Optional[str],
+    update_player: Player,
+) -> Tuple[ConversationState, Player]:
+    state, master_response = handle_master_input(state, master_comments)
+    updated_player = replace(
+        update_player,
+        initial_prompt=master_response if master_response else previous_response or "",
+    )
+    return state, updated_player
+
+
 def process_conversation_turn(
     state: ConversationState, master_comments: List[str]
 ) -> ConversationState:
     # Player 1's turn
-    response1 = handle_player_turn(
-        state.player1,
-        state.player2,
-        generate_context(state.player1, state.player2.name),
-    )
-    if response1:
-        print(format_message(state.player1.name, response1, state.player1.name))
-        state = replace(
-            state,
-            conversation_history=[
-                *state.conversation_history,
-                f"{state.player1.name}: {response1}",
-            ],
-        )
+    state, response1 = handle_player_response(state, state.player1, state.player2)
 
     # Master's turn after Player 1
-    state, master_response = handle_master_input(state, master_comments)
-    player2 = replace(
-        state.player2,
-        initial_prompt=master_response if master_response else response1 or "",
+    state, player2 = handle_master_turn(
+        state, master_comments, response1, state.player2
     )
     state = replace(state, player2=player2)
 
     # Player 2's turn
-    response2 = handle_player_turn(
-        state.player2,
-        state.player1,
-        generate_context(state.player2, state.player1.name),
-    )
-    if response2:
-        print(format_message(state.player2.name, response2, state.player1.name))
-        state = replace(
-            state,
-            conversation_history=[
-                *state.conversation_history,
-                f"{state.player2.name}: {response2}",
-            ],
-        )
+    state, response2 = handle_player_response(state, state.player2, state.player1)
 
     # Master's turn after Player 2
-    state, master_response = handle_master_input(state, master_comments)
-    player1 = replace(
-        state.player1,
-        initial_prompt=master_response if master_response else response2 or "",
+    state, player1 = handle_master_turn(
+        state, master_comments, response2, state.player1
     )
     return replace(state, player1=player1)
