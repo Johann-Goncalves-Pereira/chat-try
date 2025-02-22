@@ -37,7 +37,7 @@ def llm_rpg_conversation(
 
     for i in range(turns):
         # LLM 1's turn (Gemma)
-        prompt1 = gemma_context + "\n" + prompt1
+        prompt1 = gemma_context + "\n\n" + prompt1
         response1 = get_ollama_response(model1, prompt1)
         if response1:
             response1 = clean_response(response1, character1_name)
@@ -64,7 +64,7 @@ def llm_rpg_conversation(
             prompt1 = response1 if response1 else ""
 
         # LLM 2's turn (Crown)
-        prompt2 = crown_context + "\n" + prompt2
+        prompt2 = crown_context + "\n\n" + prompt2
         response2 = get_ollama_response(model2, prompt2)
         if response2:
             response2 = clean_response(response2, character2_name)
@@ -87,7 +87,7 @@ def llm_rpg_conversation(
         else:
             prompt1 = response2 if response2 else ""
 
-    print("\n--- Conversation History ---")
+    print("\n\n--- Conversation History ---")
     for message in conversation_history:
         print(message)
     return conversation_history
@@ -107,12 +107,12 @@ def get_ollama_response(model, prompt):
 
 # Example Usage
 if __name__ == "__main__":
-    model1 = "badjware/fimbulvetr-10.7b-v1"
-    character1_name = "Gemma"
-    prompt1 = "Your name is Gemma"
+    model1 = "badjware/fimbulvetr-10.7b-v1:q5_k_m"
+    character1_name = "Hinata"
+    prompt1 = "Your name is {character1_name}"
     model2 = "crown/darkidol"
-    character2_name = "Crown"
-    prompt2 = "Your name is Crown"
+    character2_name = "Lilith"
+    prompt2 = "Your name is {character2_name}"
     master_comments = []
     llm_rpg_conversation(
         model1,
