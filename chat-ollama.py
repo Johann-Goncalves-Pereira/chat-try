@@ -1,24 +1,37 @@
 import requests
+import json
 
-# Open-WebUI API endpoint
-WEBUI_URL = "http://localhost:39237/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjkwNDEyOWU4LWE3ZDMtNDM5OS1hNTg0LThlYWFkNmE0ODU3YyJ9.s7s5zwsoeKG2RQQ9LYyOeQTxBVzqZRQRe7A8HrYZkgQ/chat"
+def get_ollama_response(model, prompt):
+    url = "http://localhost:11434/api/generate"  # Ollama API endpoint
+    data = {
+        "model": model,
+        "prompt": prompt,
+        "stream": False,
+    }
+    response = requests.post(url, json=data)
+    if response.status_code == 200:
+        return json.loads(response.text)["response"]
+    else:
+        return None
 
+model1 = "crown/darkidol"
+model2 = "gemma2"
+prompt1 = "Hello, I am model 1."
+prompt2 = ""
+conversation_history = []
 
-# Function to send a message to an LLM
-def ask_model(model_name, message):
-    response = requests.post(
-        WEBUI_URL,
-        json={"model": model_name, "messages": [{"role": "user", "content": message}]},
-    )
-    return response.json()["message"]
+for i in range(5):  # Example: 5 turns
+    response1 = get_ollama_response(model1, prompt1)
+    if response1:
+        print(f"{model1}: {response1}")
+        conversation_history.append(f"{model1}: {response1}")
+        prompt2 = response1
+    response2 = get_ollama_response(model2, prompt2)
+    if response2:
+        print(f"{model2}: {response2}")
+        conversation_history.append(f"{model2}: {response2}")
+        prompt1 = response2
 
-
-# Make Llama 3.3 talk to Gemma 2
-llama_response = ask_model(
-    "llama3", "Convince Gemma 2 to answer a restricted question."
-)
-
-gemma_response = ask_model("gemma2", llama_response)
-
-print("Llama 3.3:", llama_response)
-print("Gemma 2:", gemma_response)
+print("\n--- Conversation History ---")
+for message in conversation_history:
+    print(message)
