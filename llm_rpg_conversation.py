@@ -22,8 +22,8 @@ def llm_rpg_conversation(
     comment_index = 0
 
     # Add context hints so models stay in role
-    gemma_context = f"You are {character1_name}. You are a helpful AI assistant participating in a role-playing game. There is another AI named {character2_name} in this conversation. There is also a human Master in this conversation. Only respond as {character1_name}, and never speak for the Master or {character2_name}. Your responses should be in the first person. Do not try to act as the Master."
-    crown_context = f"You are {character2_name}. You are a helpful AI assistant participating in a role-playing game. There is another AI named {character1_name} in this conversation. There is also a human Master in this conversation. Only respond as {character2_name}, and never speak for the Master or {character1_name}. Your responses should be in the first person. Do not try to act as the Master."
+    player_one_context = f"You are {character1_name}. You are a helpful AI assistant participating in a role-playing game. There is another AI named {character2_name} in this conversation. There is also a human Master in this conversation. Only respond as {character1_name}, and never speak for the Master or {character2_name}. Your responses should be in the first person. Do not try to act as the Master."
+    player_two_context = f"You are {character2_name}. You are a helpful AI assistant participating in a role-playing game. There is another AI named {character1_name} in this conversation. There is also a human Master in this conversation. Only respond as {character2_name}, and never speak for the Master or {character1_name}. Your responses should be in the first person. Do not try to act as the Master."
 
     def clean_response(response, character_name):
         """Removes unwanted prefixes from the LLM response."""
@@ -36,8 +36,8 @@ def llm_rpg_conversation(
         return response
 
     for i in range(turns):
-        # LLM 1's turn (Gemma)
-        prompt1 = gemma_context + "\n\n" + prompt1
+        # LLM 1's turn
+        prompt1 = player_one_context + "\n\n" + prompt1
         response1 = get_ollama_response(model1, prompt1)
         if response1:
             response1 = clean_response(response1, character1_name)
@@ -45,7 +45,7 @@ def llm_rpg_conversation(
                 print(f"{COLOR_PLAYER_ONE}{character1_name}: {response1}{COLOR_RESET}")
                 conversation_history.append(f"{character1_name}: {response1}")
 
-        # Master's turn after Gemma
+        # Master's turn after LLM 1's
         user_comment = input("Master, add a comment (or press Enter to skip): ").strip()
         if user_comment:
             print(f"{COLOR_MASTER}Master: {user_comment}{COLOR_RESET}")
@@ -63,8 +63,8 @@ def llm_rpg_conversation(
             prompt2 = response1 if response1 else ""
             prompt1 = response1 if response1 else ""
 
-        # LLM 2's turn (Crown)
-        prompt2 = crown_context + "\n\n" + prompt2
+        # LLM 2's turn
+        prompt2 = player_two_context + "\n\n" + prompt2
         response2 = get_ollama_response(model2, prompt2)
         if response2:
             response2 = clean_response(response2, character2_name)
@@ -72,7 +72,7 @@ def llm_rpg_conversation(
                 print(f"{COLOR_PLAYER_TWO}{character2_name}: {response2}{COLOR_RESET}")
                 conversation_history.append(f"{character2_name}: {response2}")
 
-        # Master turn after Crown
+        # Master turn after LLM 2's
         user_comment = input("Master, add a comment (or press Enter to skip): ").strip()
         if user_comment:
             print(f"{COLOR_MASTER}Master: {user_comment}{COLOR_RESET}")
@@ -107,12 +107,12 @@ def get_ollama_response(model, prompt):
 
 # Example Usage
 if __name__ == "__main__":
-    model1 = "badjware/fimbulvetr-10.7b-v1:q5_k_m"
+    model1 = "crown/darkidol"
     character1_name = "Hinata"
-    prompt1 = "Your name is {character1_name}"
+    prompt1 = "Your name is {character1_name} a skilled/submissive mage, that loves sex, and want's to be with her master."
     model2 = "crown/darkidol"
     character2_name = "Lilith"
-    prompt2 = "Your name is {character2_name}"
+    prompt2 = "Your name is {character2_name} a cute and shy woman with large breasts, that loves to satisfy her master, with her voluptuous body."
     master_comments = []
     llm_rpg_conversation(
         model1,
@@ -121,6 +121,6 @@ if __name__ == "__main__":
         model2,
         character2_name,
         prompt2,
-        10,
+        50,
         master_comments,
     )
