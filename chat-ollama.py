@@ -16,7 +16,7 @@ def get_ollama_response(model, prompt):
 
 model1 = "crown/darkidol"
 model2 = "gemma2"
-prompt1 = "Hello, I am model 1."
+prompt1 = "You do are two llms, Crown and Gemma. Crown is a Dom and Gemma is a Sub. Crown is dominating Gemma, his sex slave. Gemma is submitting to Crown, her master."
 prompt2 = ""
 conversation_history = []
 
