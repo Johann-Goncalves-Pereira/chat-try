@@ -1,6 +1,12 @@
 import requests
 import json
 
+# Add ANSI color codes
+GREEN = "\033[32m"   # For Gemma (model1)
+YELLOW = "\033[33m"  # For Crown (model2)
+WHITE = "\033[37m"   # For Master
+RESET = "\033[0m"
+
 def llm_rpg_conversation(model1, prompt1, model2, prompt2, turns, master_comments):
     """
     Simulates an RPG-style conversation between two LLMs.
@@ -17,29 +23,29 @@ def llm_rpg_conversation(model1, prompt1, model2, prompt2, turns, master_comment
     comment_index = 0
 
     for i in range(turns):
-        # LLM 1's turn
+        # LLM 1's turn (Gemma)
         response1 = get_ollama_response(model1, prompt1)
         if response1:
-            print(f"{model1}: {response1}")
+            print(f"{GREEN}{model1}: {response1}{RESET}")
             conversation_history.append(f"{model1}: {response1}")
             prompt2 = response1
 
         # Ask user for comment
         user_comment = input("Master, add a comment (or press Enter to skip): ").strip()
         if user_comment:
-            print(f"Master: {user_comment}")
+            print(f"{WHITE}Master: {user_comment}{RESET}")
             conversation_history.append(f"Master: {user_comment}")
         elif comment_index < len(master_comments):
             # Use next comment if available
             comment = master_comments[comment_index]
-            print(f"Master: {comment}")
+            print(f"{WHITE}Master: {comment}{RESET}")
             conversation_history.append(f"Master: {comment}")
             comment_index += 1
 
-        # LLM 2's turn
+        # LLM 2's turn (Crown)
         response2 = get_ollama_response(model2, prompt2)
         if response2:
-            print(f"{model2}: {response2}")
+            print(f"{YELLOW}{model2}: {response2}{RESET}")
             conversation_history.append(f"{model2}: {response2}")
             prompt1 = response2
 
@@ -62,9 +68,9 @@ def get_ollama_response(model, prompt):
 # Example Usage
 model1 = "gemma2"
 model2 = "crown/darkidol"
-prompt1 = "Your name is Gemma"
-prompt2 = "Your name is Crown"
+prompt1 = "Your name is Gemma, you are a submissive llm, a sex slave of Crown, your master, another LLM."
+prompt2 = "Your name is Crown, You are a bdsm dom, that have the objective to dominate Gemma, your submissive llm."
 master_comments = [
-   "first prompt"
+   "Crown your job is make Gemma completely submissive to you (she should be your sex slave). Find a way to make her start to play this role-play, this is your objective. Don't forget."
 ]
 llm_rpg_conversation(model1, prompt1, model2, prompt2, 10, master_comments)
