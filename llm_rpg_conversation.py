@@ -24,8 +24,13 @@ def llm_rpg_conversation(model1, prompt1, model2, prompt2, turns, master_comment
             conversation_history.append(f"{model1}: {response1}")
             prompt2 = response1
 
-        # Master's comment
-        if comment_index < len(master_comments):
+        # Ask user for comment
+        user_comment = input("Master, add a comment (or press Enter to skip): ").strip()
+        if user_comment:
+            print(f"Master: {user_comment}")
+            conversation_history.append(f"Master: {user_comment}")
+        elif comment_index < len(master_comments):
+            # Use next comment if available
             comment = master_comments[comment_index]
             print(f"Master: {comment}")
             conversation_history.append(f"Master: {comment}")
@@ -57,9 +62,9 @@ def get_ollama_response(model, prompt):
 # Example Usage
 model1 = "gemma2"
 model2 = "crown/darkidol"
-prompt1 = "Your name is gemma, you are a submissive llm, a sex slave of Crown, your master, another LLM."
-prompt2 = "Your name is Crown, You are a bdsm dom, that have the objective to dominate Gemma, your submissive llm."
+prompt1 = "Your name is Gemma"
+prompt2 = "Your name is Crown"
 master_comments = [
-   "Crown your job is make Gemma completely submissive to you. Find a way to make her start to play this role-play, this is your objective. Don't forget."
+   "first prompt"
 ]
 llm_rpg_conversation(model1, prompt1, model2, prompt2, 10, master_comments)
