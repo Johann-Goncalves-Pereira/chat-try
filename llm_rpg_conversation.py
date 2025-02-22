@@ -22,56 +22,70 @@ def llm_rpg_conversation(
     comment_index = 0
 
     # Add context hints so models stay in role
-    gemma_context = f"You are {character1_name} a llm, and there is another llm ({character2_name}) in this conversation. Never respond as/for {character2_name}. There is a Master in this conversation as well, he is the Human controlling you two, the Master orders override all. Every new prompt will start the one that it's talking, Example: 'Master: Hi, how are you?'"
-    crown_context = f"You are {character2_name} a llm, and there is another llm ({character1_name}) in this conversation. Never respond as/for {character1_name}. There is a Master in this conversation as well, he is the Human controlling you two, the Master orders override all. Every new prompt will start the one that it's talking, Example: 'Master: Hi, how are you?'"
+    gemma_context = f"You are {character1_name}. You are a helpful AI assistant participating in a role-playing game. There is another AI named {character2_name} in this conversation. There is also a human Master in this conversation. Only respond as {character1_name}, and never speak for the Master or {character2_name}. Your responses should be in the first person. Do not try to act as the Master."
+    crown_context = f"You are {character2_name}. You are a helpful AI assistant participating in a role-playing game. There is another AI named {character1_name} in this conversation. There is also a human Master in this conversation. Only respond as {character2_name}, and never speak for the Master or {character1_name}. Your responses should be in the first person. Do not try to act as the Master."
+
+    def clean_response(response, character_name):
+        """Removes unwanted prefixes from the LLM response."""
+        if response.startswith("Master:"):
+            return ""  # Discard the response if it's trying to be the Master
+        if response.startswith(f"{character_name}:"):
+            response = response[
+                len(character_name) + 1 :
+            ].strip()  # Remove character prefix
+        return response
 
     for i in range(turns):
         # LLM 1's turn (Gemma)
         prompt1 = gemma_context + "\n" + prompt1
         response1 = get_ollama_response(model1, prompt1)
         if response1:
-            print(f"{COLOR_PLAYER_ONE}{character1_name}: {response1}{COLOR_RESET}")
-            conversation_history.append(f"{character1_name}: {response1}")
+            response1 = clean_response(response1, character1_name)
+            if response1:  # Only print and append if the response is not empty
+                print(f"{COLOR_PLAYER_ONE}{character1_name}: {response1}{COLOR_RESET}")
+                conversation_history.append(f"{character1_name}: {response1}")
 
         # Master's turn after Gemma
         user_comment = input("Master, add a comment (or press Enter to skip): ").strip()
         if user_comment:
             print(f"{COLOR_MASTER}Master: {user_comment}{COLOR_RESET}")
             conversation_history.append(f"Master: {user_comment}")
-            prompt2 = response1 + "\nMaster: " + user_comment
-            prompt1 = response1 + "\nMaster: " + user_comment
+            prompt2 = user_comment  # Only Master comment
+            prompt1 = user_comment  # Only Master comment
         elif comment_index < len(master_comments):
             comment = master_comments[comment_index]
             print(f"{COLOR_MASTER}Master: {comment}{COLOR_RESET}")
             conversation_history.append(f"Master: {comment}")
             comment_index += 1
-            prompt2 = response1 + "\nMaster: " + comment
-            prompt1 = response1 + "\nMaster: " + comment
+            prompt2 = comment  # Only Master comment
+            prompt1 = comment  # Only Master comment
         else:
-            prompt2 = response1
-            prompt1 = response1
+            prompt2 = response1 if response1 else ""
+            prompt1 = response1 if response1 else ""
 
         # LLM 2's turn (Crown)
         prompt2 = crown_context + "\n" + prompt2
         response2 = get_ollama_response(model2, prompt2)
         if response2:
-            print(f"{COLOR_PLAYER_TWO}{character2_name}: {response2}{COLOR_RESET}")
-            conversation_history.append(f"{character2_name}: {response2}")
+            response2 = clean_response(response2, character2_name)
+            if response2:  # Only print and append if the response is not empty
+                print(f"{COLOR_PLAYER_TWO}{character2_name}: {response2}{COLOR_RESET}")
+                conversation_history.append(f"{character2_name}: {response2}")
 
         # Master turn after Crown
         user_comment = input("Master, add a comment (or press Enter to skip): ").strip()
         if user_comment:
             print(f"{COLOR_MASTER}Master: {user_comment}{COLOR_RESET}")
             conversation_history.append(f"Master: {user_comment}")
-            prompt1 = response2 + "\nMaster: " + user_comment
+            prompt1 = user_comment  # Only Master comment
         elif comment_index < len(master_comments):
             comment = master_comments[comment_index]
             print(f"{COLOR_MASTER}Master: {comment}{COLOR_RESET}")
             conversation_history.append(f"Master: {comment}")
             comment_index += 1
-            prompt1 = response2 + "\nMaster: " + comment
+            prompt1 = comment  # Only Master comment
         else:
-            prompt1 = response2
+            prompt1 = response2 if response2 else ""
 
     print("\n--- Conversation History ---")
     for message in conversation_history:
@@ -93,7 +107,7 @@ def get_ollama_response(model, prompt):
 
 # Example Usage
 if __name__ == "__main__":
-    model1 = "gemma2"
+    model1 = "badjware/fimbulvetr-10.7b-v1"
     character1_name = "Gemma"
     prompt1 = "Your name is Gemma"
     model2 = "crown/darkidol"
