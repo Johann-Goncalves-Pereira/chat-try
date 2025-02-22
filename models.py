@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 
 @dataclass(frozen=True)
@@ -19,9 +19,10 @@ def generate_context(player: Player, other_player_name: str) -> str:
     )
 
 
-@dataclass(frozen=True)
+@dataclass
 class ConversationState:
     player1: Player
     player2: Player
     conversation_history: List[str]
-    comment_index: int
+    comment_index: int = 0
+    next_speaker: Optional[str] = None
