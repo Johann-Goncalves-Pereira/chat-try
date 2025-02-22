@@ -43,7 +43,11 @@ def handle_player_turn(
 def handle_master_input(
     state: ConversationState, master_comments: List[str]
 ) -> Tuple[ConversationState, str]:
-    user_comment = input("Master, add a comment (or press Enter to skip): ").strip()
+    try:
+        user_comment = input("Master, add a comment (or press Enter to skip): ").strip()
+    except KeyboardInterrupt:
+        print("\nGracefully exiting conversation...")
+        exit(0)
 
     if user_comment:
         new_history = [*state.conversation_history, f"Master: {user_comment}"]
