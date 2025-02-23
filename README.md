@@ -31,7 +31,7 @@ Chat-Try is a Python-based project that simulates a conversation between multipl
 3.  Install the dependencies using pip:
 
     ```bash
-    pip install -r pyproject.toml
+    uv sync
     ```
 
 ## Configuration
@@ -43,12 +43,12 @@ The initial state of the conversation, including the characters and their initia
 Run the [main.py](http://_vscodecontentref_/3) script to start the conversation simulation:
 
 ```bash
-python main.py
+uv run main.py
 ```
 
 ## Project Structure
 
-```markdown
+```sh
 .
 ├── README.md # This file
 ├── main.py # Main script to run the simulation
