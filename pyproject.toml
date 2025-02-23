@@ -1,11 +1,13 @@
 [project]
+dependencies = [
+  "logging>=0.4.9.6",
+  "prompt-toolkit>=3.0.50",
+  "requests>=2.32.3",
+  "rich>=13.9.4",
+  "tenacity>=9.0.0",
+]
+description = "Ollama chat playground with multiple AI characters"
 name = "chat-try"
-version = "0.1.0"
-description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
-    "prompt-toolkit>=3.0.50",
-    "requests>=2.32.3",
-    "rich>=13.9.4",
-]
+version = "0.1.0"

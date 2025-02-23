@@ -36,3 +36,11 @@ class ConversationState:
     conversation_history: List[str]
     comment_index: int = 0
     next_speaker: Optional[str] = None
+
+    def add_message(self, message: str) -> None:
+        """Add a message to the conversation history."""
+        self.conversation_history.append(message)
+
+    def increment_index(self) -> None:
+        """Increment the comment index."""
+        self.comment_index += 1
