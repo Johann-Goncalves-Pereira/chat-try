@@ -9,7 +9,9 @@ class Player:
     initial_prompt: str
 
 
-def generate_context(player: Player, players: List[Player], next_speaker: Optional[str] = None) -> str:
+def generate_context(
+    player: Player, players: List[Player], next_speaker: Optional[str] = None
+) -> str:
     other_players = [p for p in players if p.name != player.name]
     other_players_str = ", ".join([p.name for p in other_players])
 

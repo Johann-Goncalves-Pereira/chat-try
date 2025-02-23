@@ -2,18 +2,25 @@ from typing import List, Tuple, Optional
 from dataclasses import replace
 from models import Player, ConversationState, generate_context
 from api_client import get_response
+from prompt_toolkit import prompt
+from rich.console import Console
+from rich.markup import escape
+from rich.panel import Panel
+from rich.box import ROUNDED
+
+console = Console()
 
 COLORS = {
-    "master": "\033[37m",  # White
-    "reset": "\033[0m",
+    "master": "white",
+    "reset": "",
 }
 
 PLAYER_COLORS = [
-    "\033[32m",  # Green
-    "\033[33m",  # Yellow
-    "\033[34m",  # Blue
-    "\033[35m",  # Magenta
-    "\033[36m",  # Cyan
+    "green",
+    "yellow",
+    "blue",
+    "magenta",
+    "cyan",
 ]
 
 
@@ -41,7 +48,13 @@ def format_message(
         except StopIteration:
             color = PLAYER_COLORS[0]  # Default
 
-    return f"\n{color}{speaker}: {message}{COLORS['reset']}\n"
+    formatted_message = Panel(
+        f"[{color}]{escape(speaker)}: {escape(message)}[/{color}]",
+        title=f"[{color}]{escape(speaker)}[/{color}]",
+        border_style=color,
+        box=ROUNDED,
+    )
+    return formatted_message
 
 
 def handle_player_turn(
@@ -80,7 +93,7 @@ def handle_player_response(
         state.conversation_history,
     )
     if response:
-        print(
+        console.print(
             format_message(current_player.name, response, state.players[0].name, state)
         )
         state = update_conversation_history(state, current_player.name, response)
@@ -91,14 +104,18 @@ def handle_master_input(
     state: ConversationState, master_comments: List[str]
 ) -> Tuple[ConversationState, str]:
     try:
-        user_comment = input("Master, add a comment (or press Enter to skip): ").strip()
+        user_comment = prompt(
+            "Master, add a comment (or press Enter to skip): "
+        ).strip()
     except KeyboardInterrupt:
         print("\nGracefully exiting conversation...")
         exit(0)
 
     if user_comment:
         new_history = [*state.conversation_history, f"Master: {user_comment}"]
-        print(format_message("Master", user_comment, state.players[0].name, state))
+        console.print(
+            format_message("Master", user_comment, state.players[0].name, state)
+        )
         new_state = replace(state, conversation_history=new_history)
         return new_state, user_comment
 
@@ -110,7 +127,7 @@ def handle_master_input(
             conversation_history=new_history,
             comment_index=state.comment_index + 1,
         )
-        print(format_message("Master", comment, state.players[0].name, state))
+        console.print(format_message("Master", comment, state.players[0].name, state))
         return new_state, comment
 
     return state, ""
