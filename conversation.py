@@ -35,7 +35,9 @@ def format_message(
             player_index = next(
                 i for i, p in enumerate(state.players) if p.name == speaker
             )
-            color = PLAYER_COLORS[player_index % len(PLAYER_COLORS)]  # Cycle through colors
+            color = PLAYER_COLORS[
+                player_index % len(PLAYER_COLORS)
+            ]  # Cycle through colors
         except StopIteration:
             color = PLAYER_COLORS[0]  # Default
 
@@ -43,9 +45,14 @@ def format_message(
 
 
 def handle_player_turn(
-    player: Player, players: List[Player], context: str
+    player: Player, players: List[Player], context: str, conversation_history: List[str]
 ) -> Optional[str]:
-    prompt = f"{context}\n\n{player.initial_prompt}"
+    # Include a relevant portion of the conversation history in the prompt
+    history_length = min(5, len(conversation_history))  # Adjust as needed
+    recent_history = "\n".join(conversation_history[-history_length:])
+    prompt = (
+        f"{context}\nConversation History:\n{recent_history}\n\n{player.initial_prompt}"
+    )
     response = get_response(player.model, prompt)
     if response:
         return clean_response(response, player.name)
@@ -69,7 +76,8 @@ def handle_player_response(
     response = handle_player_turn(
         current_player,
         state.players,
-        generate_context(current_player, state.players),
+        generate_context(current_player, state.players, state.next_speaker),
+        state.conversation_history,
     )
     if response:
         print(
