@@ -107,6 +107,8 @@ def handle_master_input(
         user_comment = prompt(
             "Master, add a comment (or press Enter to skip): "
         ).strip()
+        # Clear the line containing the prompt
+        print("\033[F\033[K", end="")
     except KeyboardInterrupt:
         print("\nGracefully exiting conversation...")
         exit(0)
