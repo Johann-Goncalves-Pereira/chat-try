@@ -27,7 +27,7 @@ def format_message(speaker: str, message: str, player1_name: str) -> str:
         if speaker == player1_name
         else "player_two"
     )
-    return f"{color}{speaker}: {message}{COLORS['reset']}\n"
+    return f"\n{color}{speaker}: {message}{COLORS['reset']}\n"
 
 
 def handle_player_turn(
