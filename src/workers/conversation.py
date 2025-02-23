@@ -1,8 +1,8 @@
 from typing import List, Tuple, Optional
 from dataclasses import replace
 import random
-from models import Player, ConversationState, PlayerStats, generate_context
-from api_client import get_response
+from src.workers.models import Player, ConversationState, PlayerStats, generate_context
+from lib.api_client import get_response
 from prompt_toolkit import prompt
 from rich.console import Console
 from rich.markup import escape
@@ -163,16 +163,18 @@ def get_opposite_player(
 ) -> Player:
     """Returns a randomly selected eligible player based on turn constraints."""
     MAX_TURNS_WITHOUT_PLAY = 3  # Reduced from 5 to 3 for more frequent rotation
-    
+
     # Update turns without play for all players except current
     for player in players:
         if player != current:
             player_stats[player.name].increment_without_play()
-    
+
     # First priority: Players who haven't played for MAX_TURNS_WITHOUT_PLAY or more turns
     must_include = [
-        p for p in players 
-        if p != current and player_stats[p.name].turns_without_play >= MAX_TURNS_WITHOUT_PLAY
+        p
+        for p in players
+        if p != current
+        and player_stats[p.name].turns_without_play >= MAX_TURNS_WITHOUT_PLAY
     ]
     if must_include:
         selected = random.choice(must_include)
@@ -183,13 +185,13 @@ def get_opposite_player(
     # Second priority: Players with the highest turns_without_play
     if len(players) > 2:  # Only apply for conversations with more than 2 players
         max_turns_without = max(
-            player_stats[p.name].turns_without_play 
-            for p in players 
-            if p != current
+            player_stats[p.name].turns_without_play for p in players if p != current
         )
         most_waiting = [
-            p for p in players 
-            if p != current and player_stats[p.name].turns_without_play == max_turns_without
+            p
+            for p in players
+            if p != current
+            and player_stats[p.name].turns_without_play == max_turns_without
         ]
         if most_waiting and player_stats[most_waiting[0].name].consecutive_turns < 2:
             selected = random.choice(most_waiting)
@@ -199,10 +201,11 @@ def get_opposite_player(
 
     # Third priority: Regular eligible players
     eligible_players = [
-        p for p in players
+        p
+        for p in players
         if p != current and player_stats[p.name].consecutive_turns < 2
     ]
-    
+
     if not eligible_players:
         # Reset consecutive turns if no eligible players
         for player in players:

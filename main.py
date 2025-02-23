@@ -1,10 +1,10 @@
 import logging
 import random
 from functools import reduce
-from config import INITIAL_STATE_FILE, MAX_CONVERSATION_TURNS
-from state_manager import load_initial_state
-from conversation import process_conversation_turn
-from models import ConversationState
+from src.utils.config import INITIAL_STATE_FILE, MAX_CONVERSATION_TURNS
+from src.utils.state_manager import load_initial_state
+from src.workers.conversation import process_conversation_turn
+from src.workers.models import ConversationState
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
