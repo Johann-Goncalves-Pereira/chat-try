@@ -8,11 +8,9 @@ def load_initial_state(file_path: str) -> ConversationState:
     """Loads the initial state from a JSON file."""
     with open(file_path, "r") as f:
         data = json.load(f)
-    player1 = Player(**data["player1"])
-    player2 = Player(**data["player2"])
+    players = [Player(**player_data) for player_data in data["players"]]
     return ConversationState(
-        player1=player1,
-        player2=player2,
+        players=players,
         conversation_history=data["conversation_history"],
         comment_index=data["comment_index"],
     )

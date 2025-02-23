@@ -4,11 +4,17 @@ from models import Player, ConversationState, generate_context
 from api_client import get_response
 
 COLORS = {
-    "player_one": "\033[32m",
-    "player_two": "\033[33m",
-    "master": "\033[37m",
+    "master": "\033[37m",  # White
     "reset": "\033[0m",
 }
+
+PLAYER_COLORS = [
+    "\033[32m",  # Green
+    "\033[33m",  # Yellow
+    "\033[34m",  # Blue
+    "\033[35m",  # Magenta
+    "\033[36m",  # Cyan
+]
 
 
 def clean_response(response: str, character_name: str) -> str:
@@ -19,19 +25,25 @@ def clean_response(response: str, character_name: str) -> str:
     return response
 
 
-def format_message(speaker: str, message: str, player1_name: str) -> str:
-    color = COLORS.get(
-        "master"
-        if speaker == "Master"
-        else "player_one"
-        if speaker == player1_name
-        else "player_two"
-    )
+def format_message(
+    speaker: str, message: str, first_player_name: str, state: ConversationState
+) -> str:
+    if speaker == "Master":
+        color = COLORS["master"]
+    else:
+        try:
+            player_index = next(
+                i for i, p in enumerate(state.players) if p.name == speaker
+            )
+            color = PLAYER_COLORS[player_index % len(PLAYER_COLORS)]  # Cycle through colors
+        except StopIteration:
+            color = PLAYER_COLORS[0]  # Default
+
     return f"\n{color}{speaker}: {message}{COLORS['reset']}\n"
 
 
 def handle_player_turn(
-    player: Player, other_player: Player, context: str
+    player: Player, players: List[Player], context: str
 ) -> Optional[str]:
     prompt = f"{context}\n\n{player.initial_prompt}"
     response = get_response(player.model, prompt)
@@ -52,15 +64,17 @@ def update_conversation_history(
 def handle_player_response(
     state: ConversationState,
     current_player: Player,
-    other_player: Player,
+    other_players: List[Player],
 ) -> Tuple[ConversationState, Optional[str]]:
     response = handle_player_turn(
         current_player,
-        other_player,
-        generate_context(current_player, other_player.name),
+        state.players,
+        generate_context(current_player, state.players),
     )
     if response:
-        print(format_message(current_player.name, response, state.player1.name))
+        print(
+            format_message(current_player.name, response, state.players[0].name, state)
+        )
         state = update_conversation_history(state, current_player.name, response)
     return state, response
 
@@ -76,8 +90,8 @@ def handle_master_input(
 
     if user_comment:
         new_history = [*state.conversation_history, f"Master: {user_comment}"]
+        print(format_message("Master", user_comment, state.players[0].name, state))
         new_state = replace(state, conversation_history=new_history)
-        print(format_message("Master", user_comment, state.player1.name))
         return new_state, user_comment
 
     if state.comment_index < len(master_comments):
@@ -88,7 +102,7 @@ def handle_master_input(
             conversation_history=new_history,
             comment_index=state.comment_index + 1,
         )
-        print(format_message("Master", comment, state.player1.name))
+        print(format_message("Master", comment, state.players[0].name, state))
         return new_state, comment
 
     return state, ""
@@ -108,54 +122,51 @@ def handle_master_turn(
     return state, updated_player
 
 
-def get_mentioned_player(
-    message: str, player1: Player, player2: Player
-) -> Optional[Player]:
+def get_mentioned_player(message: str, players: List[Player]) -> Optional[Player]:
     """Returns the mentioned player or None if no player is mentioned."""
-    if f"@{player1.name.lower()}" in message.lower():
-        return player1
-    if f"@{player2.name.lower()}" in message.lower():
-        return player2
+    for player in players:
+        if f"@{player.name.lower()}" in message.lower():
+            return player
     return None
 
 
-def get_opposite_player(current: Player, state: ConversationState) -> Player:
-    """Returns the player that isn't the current one."""
-    return state.player2 if current == state.player1 else state.player1
+def get_opposite_player(current: Player, players: List[Player]) -> Player:
+    """Returns the next player in the list, wrapping around if necessary."""
+    current_index = players.index(current)
+    next_index = (current_index + 1) % len(players)
+    return players[next_index]
 
 
 def determine_next_speaker(
     master_response: str, current_player: Player, state: ConversationState
 ) -> Optional[str]:
     """Determines the next speaker based on mentions or turn order."""
-    mentioned_player = get_mentioned_player(
-        master_response, state.player1, state.player2
-    )
+    mentioned_player = get_mentioned_player(master_response, state.players)
     if mentioned_player:
         return mentioned_player.name
-    return get_opposite_player(current_player, state).name
+    return get_opposite_player(current_player, state.players).name
 
 
 def handle_complete_turn(
     state: ConversationState, current_player: Player, master_comments: List[str]
 ) -> Tuple[ConversationState, Optional[str]]:
     """Handles a complete turn cycle: player response + master turn."""
-    other_player = get_opposite_player(current_player, state)
+    other_players = [p for p in state.players if p != current_player]
 
     # Handle player's response
-    state, response = handle_player_response(state, current_player, other_player)
+    state, response = handle_player_response(state, current_player, other_players)
 
-    # Handle master's turn
+    # Determine the next player
+    next_player = get_opposite_player(current_player, state.players)
+
+    # Handle master's turn, updating the next player's prompt
     state, updated_player = handle_master_turn(
-        state, master_comments, response, other_player
+        state, master_comments, response, next_player
     )
 
-    # Update the correct player in state
-    state = replace(
-        state,
-        player1=updated_player if other_player == state.player1 else state.player1,
-        player2=updated_player if other_player == state.player2 else state.player2,
-    )
+    # Update the player in the state
+    updated_players = [updated_player if p == next_player else p for p in state.players]
+    state = replace(state, players=updated_players)
 
     return state, updated_player.initial_prompt
 
@@ -165,28 +176,24 @@ def process_conversation_turn(
 ) -> ConversationState:
     # Handle explicitly set next speaker (from @mentions)
     if state.next_speaker:
-        current_player = (
-            state.player1 if state.next_speaker == state.player1.name else state.player2
+        current_player = next(
+            (p for p in state.players if p.name == state.next_speaker), None
         )
+        if not current_player:
+            print(f"Warning: next_speaker {state.next_speaker} not found.")
+            current_player = state.players[0]  # Default to the first player
+
         state, master_response = handle_complete_turn(
             state, current_player, master_comments
         )
         next_speaker = determine_next_speaker(master_response, current_player, state)
         return replace(state, next_speaker=next_speaker)
 
-    # Normal alternating flow
-    # Player 1's turn
-    state, master_response1 = handle_complete_turn(
-        state, state.player1, master_comments
+    # Normal alternating flow: cycle through all players
+    current_player = state.players[0]  # Start with the first player in the list
+    state, master_response = handle_complete_turn(
+        state, current_player, master_comments
     )
-    next_speaker = determine_next_speaker(master_response1, state.player1, state)
-
-    if (
-        next_speaker == state.player2.name
-    ):  # Only proceed with player 2 if not mentioned player 1
-        state, master_response2 = handle_complete_turn(
-            state, state.player2, master_comments
-        )
-        next_speaker = determine_next_speaker(master_response2, state.player2, state)
+    next_speaker = determine_next_speaker(master_response, current_player, state)
 
     return replace(state, next_speaker=next_speaker)

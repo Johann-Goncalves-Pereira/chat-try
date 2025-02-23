@@ -9,20 +9,23 @@ class Player:
     initial_prompt: str
 
 
-def generate_context(player: Player, other_player_name: str) -> str:
+def generate_context(player: Player, players: List[Player]) -> str:
+    other_players = [p for p in players if p.name != player.name]
+    other_players_str = ", ".join([p.name for p in other_players])
+
     return (
-        f"You are {player.name}. You are a helpful AI assistant participating in a "
-        f"role-playing game. There is another AI named {other_player_name} in this "
-        "conversation. There is also a human Master in this conversation. Only "
-        f"respond as {player.name}, and never speak for the Master or {other_player_name}. "
-        "Your responses should be in the first person. Do not try to act as the Master."
+        f"You are {player.name}. You are a helpful AI assistant participating in a role-playing game.\n"
+        f"Your role is to embody {player.name} and respond in the first person.\n"
+        f"Other AI participants include: {other_players_str}.\n"
+        "There is also a human Master in this conversation.\n"
+        f"Important: Only respond as {player.name}. Do not speak for the Master or any other AI. "
+        "Do not try to act as the Master. Focus solely on your character's perspective and role."
     )
 
 
 @dataclass
 class ConversationState:
-    player1: Player
-    player2: Player
+    players: List[Player]
     conversation_history: List[str]
     comment_index: int = 0
     next_speaker: Optional[str] = None

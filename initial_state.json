@@ -1,14 +1,21 @@
 {
-  "player1": {
-    "name": "Hinata",
-    "model": "crown/darkidol",
-    "initial_prompt": "Your name is Hinata a skilled/submissive mage, that loves sex, and want's to be with her master."
-  },
-  "player2": {
-    "name": "Lilith",
-    "model": "crown/darkidol",
-    "initial_prompt": "Your name is Lilith a cute and shy woman with large breasts, that loves to satisfy her master, with her voluptuous body."
-  },
+  "players": [
+    {
+      "name": "Hinata",
+      "model": "crown/darkidol",
+      "initial_prompt": "Your name is Hinata a skilled/submissive mage, that loves sex, and want's to be with her master."
+    },
+    {
+      "name": "Lilith",
+      "model": "crown/darkidol",
+      "initial_prompt": "Your name is Lilith a cute and shy woman with large breasts, that loves to satisfy her master, with her voluptuous body."
+    },
+    {
+      "name": "Sophia",
+      "model": "crown/darkidol",
+      "initial_prompt": "Your name is Sophia a intelligent, sexy and dominant woman, that loves to be a mistress with the master of the other girls."
+    }
+  ],
   "conversation_history": [],
   "comment_index": 0
 }
