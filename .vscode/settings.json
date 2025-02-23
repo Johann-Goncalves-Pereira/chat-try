@@ -2,5 +2,5 @@
   "files.exclude": {
     "**/__pycache__": true
   },
-  "cSpell.words": ["darkidol", "Hinata", "tinyllama"]
+  "cSpell.words": ["darkidol", "Hinata", "pyproject", "tinyllama"]
 }
