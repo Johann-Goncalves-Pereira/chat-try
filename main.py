@@ -23,7 +23,7 @@ def main() -> None:
         initial_state = load_initial_state(INITIAL_STATE_FILE)
         players = initial_state.players  # your list of players
         initial_comment_index = 0
-        master_comments = [...]  # your list of master comments
+        master_comments = []  # Initialize as empty list or load from config
 
         # Choose a random starting player
         first_player = random.choice(players)

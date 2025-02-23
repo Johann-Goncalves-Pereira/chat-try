@@ -12,12 +12,21 @@ def load_initial_state(file_path: Path) -> ConversationState:
         with open(file_path, "r") as f:
             data = json.load(f)
 
-        players = [Player(**player_data) for player_data in data["players"]]
+        players = [
+            Player(
+                name=p["name"],
+                model=p["model"],
+                initial_prompt=p["initial_prompt"],
+            )
+            for p in data["players"]
+        ]
+
         return ConversationState(
             players=players,
             conversation_history=data["conversation_history"],
-            comment_index=data["comment_index"],
+            comment_index=data.get("comment_index", 0),
         )
+        # player_stats will be automatically initialized in __post_init__
     except (json.JSONDecodeError, FileNotFoundError) as e:
         logger.error(f"Error loading initial state: {e}")
         raise

@@ -1,6 +1,7 @@
 from typing import List, Tuple, Optional
 from dataclasses import replace
-from models import Player, ConversationState, generate_context
+import random
+from models import Player, ConversationState, PlayerStats, generate_context
 from api_client import get_response
 from prompt_toolkit import prompt
 from rich.console import Console
@@ -157,11 +158,61 @@ def get_mentioned_player(message: str, players: List[Player]) -> Optional[Player
     return None
 
 
-def get_opposite_player(current: Player, players: List[Player]) -> Player:
-    """Returns the next player in the list, wrapping around if necessary."""
-    current_index = players.index(current)
-    next_index = (current_index + 1) % len(players)
-    return players[next_index]
+def get_opposite_player(
+    current: Player, players: List[Player], player_stats: dict[str, PlayerStats]
+) -> Player:
+    """Returns a randomly selected eligible player based on turn constraints."""
+    MAX_TURNS_WITHOUT_PLAY = 3  # Reduced from 5 to 3 for more frequent rotation
+    
+    # Update turns without play for all players except current
+    for player in players:
+        if player != current:
+            player_stats[player.name].increment_without_play()
+    
+    # First priority: Players who haven't played for MAX_TURNS_WITHOUT_PLAY or more turns
+    must_include = [
+        p for p in players 
+        if p != current and player_stats[p.name].turns_without_play >= MAX_TURNS_WITHOUT_PLAY
+    ]
+    if must_include:
+        selected = random.choice(must_include)
+        player_stats[selected.name].reset_without_play()
+        player_stats[selected.name].increment_consecutive()
+        return selected
+
+    # Second priority: Players with the highest turns_without_play
+    if len(players) > 2:  # Only apply for conversations with more than 2 players
+        max_turns_without = max(
+            player_stats[p.name].turns_without_play 
+            for p in players 
+            if p != current
+        )
+        most_waiting = [
+            p for p in players 
+            if p != current and player_stats[p.name].turns_without_play == max_turns_without
+        ]
+        if most_waiting and player_stats[most_waiting[0].name].consecutive_turns < 2:
+            selected = random.choice(most_waiting)
+            player_stats[selected.name].reset_without_play()
+            player_stats[selected.name].increment_consecutive()
+            return selected
+
+    # Third priority: Regular eligible players
+    eligible_players = [
+        p for p in players
+        if p != current and player_stats[p.name].consecutive_turns < 2
+    ]
+    
+    if not eligible_players:
+        # Reset consecutive turns if no eligible players
+        for player in players:
+            player_stats[player.name].reset_consecutive()
+        eligible_players = [p for p in players if p != current]
+
+    selected = random.choice(eligible_players)
+    player_stats[selected.name].reset_without_play()
+    player_stats[selected.name].increment_consecutive()
+    return selected
 
 
 def determine_next_speaker(
@@ -171,7 +222,7 @@ def determine_next_speaker(
     mentioned_player = get_mentioned_player(master_response, state.players)
     if mentioned_player:
         return mentioned_player.name
-    return get_opposite_player(current_player, state.players).name
+    return get_opposite_player(current_player, state.players, state.player_stats).name
 
 
 def handle_complete_turn(
@@ -184,7 +235,7 @@ def handle_complete_turn(
     state, response = handle_player_response(state, current_player, other_players)
 
     # Determine the next player
-    next_player = get_opposite_player(current_player, state.players)
+    next_player = get_opposite_player(current_player, state.players, state.player_stats)
 
     # Handle master's turn, updating the next player's prompt
     state, updated_player = handle_master_turn(
@@ -201,6 +252,13 @@ def handle_complete_turn(
 def process_conversation_turn(
     state: ConversationState, master_comments: List[str]
 ) -> ConversationState:
+    # Initialize player stats if not present
+    if not hasattr(state, "player_stats"):
+        state = replace(
+            state,
+            player_stats={player.name: PlayerStats(player) for player in state.players},
+        )
+
     # Handle explicitly set next speaker (from @mentions)
     if state.next_speaker:
         current_player = next(
@@ -208,7 +266,7 @@ def process_conversation_turn(
         )
         if not current_player:
             print(f"Warning: next_speaker {state.next_speaker} not found.")
-            current_player = state.players[0]  # Default to the first player
+            current_player = state.players[0]
 
         state, master_response = handle_complete_turn(
             state, current_player, master_comments
@@ -216,11 +274,23 @@ def process_conversation_turn(
         next_speaker = determine_next_speaker(master_response, current_player, state)
         return replace(state, next_speaker=next_speaker)
 
-    # Normal alternating flow: cycle through all players
-    current_player = state.players[0]  # Start with the first player in the list
+    # Normal random flow with constraints
+    current_player = (
+        state.players[0]
+        if not state.next_speaker
+        else next(p for p in state.players if p.name == state.next_speaker)
+    )
+
     state, master_response = handle_complete_turn(
         state, current_player, master_comments
     )
-    next_speaker = determine_next_speaker(master_response, current_player, state)
+
+    if master_response and "@" in master_response:
+        next_speaker = determine_next_speaker(master_response, current_player, state)
+    else:
+        next_player = get_opposite_player(
+            current_player, state.players, state.player_stats
+        )
+        next_speaker = next_player.name
 
     return replace(state, next_speaker=next_speaker)

@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import List, Optional
+from dataclasses import dataclass, field
+from typing import List, Dict, Optional
 
 
 @dataclass(frozen=True)
@@ -30,12 +30,39 @@ def generate_context(
     return context
 
 
+class PlayerStats:
+    def __init__(self, player: Player):
+        self.player = player
+        self.consecutive_turns = 0
+        self.turns_without_play = 0
+
+    def reset_consecutive(self):
+        self.consecutive_turns = 0
+
+    def increment_consecutive(self):
+        self.consecutive_turns += 1
+
+    def increment_without_play(self):
+        self.turns_without_play += 1
+
+    def reset_without_play(self):
+        self.turns_without_play = 0
+
+
 @dataclass
 class ConversationState:
     players: List[Player]
     conversation_history: List[str]
     comment_index: int = 0
     next_speaker: Optional[str] = None
+    player_stats: Dict[str, PlayerStats] = field(default_factory=dict)
+
+    def __post_init__(self):
+        # Initialize player_stats if empty
+        if not self.player_stats:
+            self.player_stats = {
+                player.name: PlayerStats(player) for player in self.players
+            }
 
     def add_message(self, message: str) -> None:
         """Add a message to the conversation history."""
