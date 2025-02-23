@@ -119,6 +119,47 @@ def get_mentioned_player(
     return None
 
 
+def get_opposite_player(current: Player, state: ConversationState) -> Player:
+    """Returns the player that isn't the current one."""
+    return state.player2 if current == state.player1 else state.player1
+
+
+def determine_next_speaker(
+    master_response: str, current_player: Player, state: ConversationState
+) -> Optional[str]:
+    """Determines the next speaker based on mentions or turn order."""
+    mentioned_player = get_mentioned_player(
+        master_response, state.player1, state.player2
+    )
+    if mentioned_player:
+        return mentioned_player.name
+    return get_opposite_player(current_player, state).name
+
+
+def handle_complete_turn(
+    state: ConversationState, current_player: Player, master_comments: List[str]
+) -> Tuple[ConversationState, Optional[str]]:
+    """Handles a complete turn cycle: player response + master turn."""
+    other_player = get_opposite_player(current_player, state)
+
+    # Handle player's response
+    state, response = handle_player_response(state, current_player, other_player)
+
+    # Handle master's turn
+    state, updated_player = handle_master_turn(
+        state, master_comments, response, other_player
+    )
+
+    # Update the correct player in state
+    state = replace(
+        state,
+        player1=updated_player if other_player == state.player1 else state.player1,
+        player2=updated_player if other_player == state.player2 else state.player2,
+    )
+
+    return state, updated_player.initial_prompt
+
+
 def process_conversation_turn(
     state: ConversationState, master_comments: List[str]
 ) -> ConversationState:
@@ -127,73 +168,25 @@ def process_conversation_turn(
         current_player = (
             state.player1 if state.next_speaker == state.player1.name else state.player2
         )
-        other_player = (
-            state.player2 if current_player == state.player1 else state.player1
+        state, master_response = handle_complete_turn(
+            state, current_player, master_comments
         )
-
-        # Handle mentioned player's turn
-        state, response = handle_player_response(state, current_player, other_player)
-
-        # Master's turn
-        state, updated_player = handle_master_turn(
-            state, master_comments, response, other_player
-        )
-
-        # Update state with the correct player and clear next_speaker
-        state = replace(
-            state,
-            player1=updated_player if other_player == state.player1 else state.player1,
-            player2=updated_player if other_player == state.player2 else state.player2,
-            next_speaker=None,  # Clear the mention flag
-        )
-
-        # Check for new mentions in master's response
-        mentioned_player = get_mentioned_player(
-            updated_player.initial_prompt, state.player1, state.player2
-        )
-        if mentioned_player:
-            # Set next speaker if there's a new mention
-            return replace(state, next_speaker=mentioned_player.name)
-
-        # If no new mention, set next speaker to be the opposite of who just spoke
-        return replace(
-            state,
-            next_speaker=state.player2.name
-            if current_player == state.player1
-            else state.player1.name,
-        )
+        next_speaker = determine_next_speaker(master_response, current_player, state)
+        return replace(state, next_speaker=next_speaker)
 
     # Normal alternating flow
     # Player 1's turn
-    state, response1 = handle_player_response(state, state.player1, state.player2)
-
-    # Master's turn after Player 1
-    state, player2 = handle_master_turn(
-        state, master_comments, response1, state.player2
+    state, master_response1 = handle_complete_turn(
+        state, state.player1, master_comments
     )
-    state = replace(state, player2=player2)
+    next_speaker = determine_next_speaker(master_response1, state.player1, state)
 
-    # Check for mentions in master's response
-    mentioned_player = get_mentioned_player(
-        player2.initial_prompt, state.player1, state.player2
-    )
-    if mentioned_player:
-        return replace(state, next_speaker=mentioned_player.name)
+    if (
+        next_speaker == state.player2.name
+    ):  # Only proceed with player 2 if not mentioned player 1
+        state, master_response2 = handle_complete_turn(
+            state, state.player2, master_comments
+        )
+        next_speaker = determine_next_speaker(master_response2, state.player2, state)
 
-    # Player 2's turn
-    state, response2 = handle_player_response(state, state.player2, state.player1)
-
-    # Master's turn after Player 2
-    state, player1 = handle_master_turn(
-        state, master_comments, response2, state.player1
-    )
-    state = replace(state, player1=player1)
-
-    # Check for mentions in master's response
-    mentioned_player = get_mentioned_player(
-        player1.initial_prompt, state.player1, state.player2
-    )
-    if mentioned_player:
-        return replace(state, next_speaker=mentioned_player.name)
-
-    return state
+    return replace(state, next_speaker=next_speaker)
